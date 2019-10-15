@@ -1,0 +1,92 @@
+library(plyr)
+library(readr)
+a <- read_csv("Desktop/DATATON/2018.csv")
+d<- read_csv("Desktop/DATATON/2017.csv")
+e<- read_csv("Desktop/DATATON/2012.csv")
+x<- read_csv("Desktop/DATATON/2011.csv")
+y<- read_csv("Desktop/DATATON/2006.csv")
+z<- read_csv("Desktop/DATATON/2005.csv")
+# c<-aggregate(monto ~ empresa + dependencia, data = b, sum)
+# b<-count(a, c("empresa", "dependencia"))
+library(dplyr)
+b<-a %>% 
+  group_by(empresa, dependencia) %>% 
+  mutate(count = n()) %>%
+  mutate(monto.m = monto/1000000)
+library(ggplot2)
+ggplot(b, aes(x=count, y=monto.m)) +
+  geom_point(alpha=0.5) +
+  scale_size(range = c(.1, 24), name="Contratos")
+
+#Aquellos que tienen más de doscientos contratos con 
+#Diconsa e ISSSTE
+mil<-filter(b, count>800)
+ggplot(mil, aes(x=count, y=monto.m, 
+                color= dependencia, shape= empresa)) +
+  geom_point(alpha=0.5) +
+  scale_size(range = c(.1, 24), name="Contratos")
+
+
+#Aquellos que tienen pocos contratos pero de montos muy altos son
+pocos<-filter(e, count == 1)
+pocos<-filter(pocos, monto.m > 5000)
+pocos<-filter(pocos, monto.m < 10000)
+ggplot(pocos, aes(x=count, y=monto.m , color=dependencia, shape=empresa)) +
+  geom_point(alpha=0.5) +
+  scale_size(range = c(.1, 24), name="Contratos")
+
+e<-e %>% 
+  group_by(empresa, dependencia) %>% 
+  mutate(count = n()) %>%
+  mutate(monto.m = monto/1000000)%>%
+  arrange(desc(monto.m))
+
+d<-d %>% 
+  group_by(empresa, dependencia) %>% 
+  mutate(count = n()) %>%
+  mutate(monto.m = monto/1000000)
+
+
+#Como es la evolución de los contratos con diconsa?
+fox<-  filter(y, grepl('DICONSA|Diconsa', dependencia)) 
+fox$Adm<-"Fox"
+Cal<-filter(e, grepl('DICONSA|Diconsa', dependencia))
+Cal$Adm<-"Cal"
+Epn<-filter(b, grepl('DICONSA|Diconsa', dependencia))
+Epn$Adm<-"Epn"
+fox2<-  filter(z, grepl('DICONSA|Diconsa', dependencia)) 
+fox2$Adm<-"Fox2"
+Cal2<-filter(x, grepl('DICONSA|Diconsa', dependencia))
+Cal2$Adm<-"Cal2"
+Epn2<-filter(d, grepl('DICONSA|Diconsa', dependencia))
+Epn2$Adm<-"Epn2"
+
+t<-cbind(fox,Cal,Epn,fox2,Cal2,Epn2)
+#w<-full_join(fox, Cal,  by="AREA INDUSTRIAL")
+
+ggplot(t, aes(x=count, y=monto.m, color=Adm)) +
+  geom_point(alpha=0.5) +
+  scale_size(range = c(.1, 24), name="Contratos de Diconsa por administración") +
+  scale_y_sqrt()
+
+uno<- fox %>%
+  select(empresa)
+dos<-Cal%>%
+  select(empresa)
+
+x <- list(
+  fox$empresa,
+  Cal$empresa,
+  Epn$empresa
+)
+library(VennDiagram)
+venn.diagram(
+  x = x,
+  category.names = c("Fox" , "Cal " , "Epn"),
+  filename = "a.png",
+  output=TRUE)
+
+
+
+
+write.csv(Epn$empresa, "Epn.csv")
